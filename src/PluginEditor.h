@@ -33,5 +33,8 @@ private:
     juce::Slider decaySlider_;
     juce::Label decayLabel_;
 
+    juce::Slider polyphonySlider_;
+    juce::Label polyphonyLabel_;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BraidsVSTEditor)
 };

@@ -75,6 +75,20 @@ BraidsVSTEditor::BraidsVSTEditor(BraidsVSTProcessor& p)
         *processor_.getDecayParam() = static_cast<float>(decaySlider_.getValue());
     };
     addAndMakeVisible(decaySlider_);
+
+    // Polyphony slider
+    polyphonyLabel_.setText("Voices", juce::dontSendNotification);
+    polyphonyLabel_.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(polyphonyLabel_);
+
+    polyphonySlider_.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    polyphonySlider_.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 20);
+    polyphonySlider_.setRange(1.0, 16.0, 1.0);  // Integer steps
+    polyphonySlider_.setValue(processor_.getPolyphonyParam()->get(), juce::dontSendNotification);
+    polyphonySlider_.onValueChange = [this] {
+        *processor_.getPolyphonyParam() = static_cast<int>(polyphonySlider_.getValue());
+    };
+    addAndMakeVisible(polyphonySlider_);
 }
 
 BraidsVSTEditor::~BraidsVSTEditor() = default;
@@ -92,7 +106,7 @@ void BraidsVSTEditor::paint(juce::Graphics& g)
 void BraidsVSTEditor::resized()
 {
     const int margin = 20;
-    const int knobSize = 80;
+    const int knobSize = 70;
     const int labelHeight = 20;
     const int comboHeight = 24;
 
@@ -100,9 +114,9 @@ void BraidsVSTEditor::resized()
     shapeLabel_.setBounds(margin, 50, 60, labelHeight);
     shapeCombo_.setBounds(margin + 70, 50, 200, comboHeight);
 
-    // Knobs in a row
+    // Knobs in a row - first row: Timbre, Color, Voices
     const int knobY = 100;
-    const int knobSpacing = 90;
+    const int knobSpacing = 80;
     int x = margin;
 
     timbreLabel_.setBounds(x, knobY, knobSize, labelHeight);
@@ -113,10 +127,17 @@ void BraidsVSTEditor::resized()
     colorSlider_.setBounds(x, knobY + labelHeight, knobSize, knobSize);
     x += knobSpacing;
 
-    attackLabel_.setBounds(x, knobY, knobSize, labelHeight);
-    attackSlider_.setBounds(x, knobY + labelHeight, knobSize, knobSize);
+    polyphonyLabel_.setBounds(x, knobY, knobSize, labelHeight);
+    polyphonySlider_.setBounds(x, knobY + labelHeight, knobSize, knobSize);
+
+    // Second row: Attack, Decay
+    const int knobY2 = 210;
+    x = margin;
+
+    attackLabel_.setBounds(x, knobY2, knobSize, labelHeight);
+    attackSlider_.setBounds(x, knobY2 + labelHeight, knobSize, knobSize);
     x += knobSpacing;
 
-    decayLabel_.setBounds(x, knobY, knobSize, labelHeight);
-    decaySlider_.setBounds(x, knobY + labelHeight, knobSize, knobSize);
+    decayLabel_.setBounds(x, knobY2, knobSize, labelHeight);
+    decaySlider_.setBounds(x, knobY2 + labelHeight, knobSize, knobSize);
 }

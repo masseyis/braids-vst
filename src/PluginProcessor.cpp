@@ -49,7 +49,7 @@ BraidsVSTProcessor::BraidsVSTProcessor()
     addParameter(attackParam_ = new juce::AudioParameterFloat(
         juce::ParameterID("attack", 1),
         "Attack",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.0f, 0.3f),  // Skewed for finer control at low values
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.0f, 0.3f),
         0.1f
     ));
 
@@ -60,8 +60,13 @@ BraidsVSTProcessor::BraidsVSTProcessor()
         0.3f
     ));
 
-    oscillator_.Init();
-    envelope_.Init();
+    addParameter(polyphonyParam_ = new juce::AudioParameterInt(
+        juce::ParameterID("polyphony", 1),
+        "Polyphony",
+        1, 16, 8  // min, max, default
+    ));
+
+    voiceAllocator_.Init(44100.0, 8);
 }
 
 BraidsVSTProcessor::~BraidsVSTProcessor() = default;
@@ -69,8 +74,7 @@ BraidsVSTProcessor::~BraidsVSTProcessor() = default;
 void BraidsVSTProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
 {
     hostSampleRate_ = sampleRate;
-    oscillator_.Init();
-    envelope_.Init();
+    voiceAllocator_.Init(sampleRate, polyphonyParam_->get());
 }
 
 void BraidsVSTProcessor::releaseResources()
@@ -81,21 +85,17 @@ void BraidsVSTProcessor::handleMidiMessage(const juce::MidiMessage& msg)
 {
     if (msg.isNoteOn())
     {
-        noteOn_ = true;
-        currentNote_ = msg.getNoteNumber();
-        currentVelocity_ = msg.getFloatVelocity();
-
-        // Convert MIDI note to Braids pitch format (note * 128)
-        oscillator_.set_pitch(currentNote_ << 7);
-
-        // Trigger envelope with current attack/decay settings
         uint16_t attack = static_cast<uint16_t>(attackParam_->get() * 65535.0f);
         uint16_t decay = static_cast<uint16_t>(decayParam_->get() * 65535.0f);
-        envelope_.Trigger(attack, decay);
+        voiceAllocator_.NoteOn(msg.getNoteNumber(), msg.getFloatVelocity(), attack, decay);
     }
-    else if (msg.isNoteOff() && msg.getNoteNumber() == currentNote_)
+    else if (msg.isNoteOff())
     {
-        noteOn_ = false;
+        voiceAllocator_.NoteOff(msg.getNoteNumber());
+    }
+    else if (msg.isAllNotesOff() || msg.isAllSoundOff())
+    {
+        voiceAllocator_.AllNotesOff();
     }
 }
 
@@ -110,47 +110,31 @@ void BraidsVSTProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         handleMidiMessage(metadata.getMessage());
     }
 
+    // Update polyphony if changed
+    voiceAllocator_.setPolyphony(polyphonyParam_->get());
+
+    // Update shared parameters
+    int shapeIndex = shapeParam_->getIndex();
+    voiceAllocator_.set_shape(static_cast<braids::MacroOscillatorShape>(shapeIndex));
+
+    int16_t timbre = static_cast<int16_t>(timbreParam_->get() * 32767.0f);
+    int16_t color = static_cast<int16_t>(colorParam_->get() * 32767.0f);
+    voiceAllocator_.set_parameters(timbre, color);
+
+    // Get output pointers
     auto* leftChannel = buffer.getWritePointer(0);
     auto* rightChannel = buffer.getNumChannels() > 1 ? buffer.getWritePointer(1) : nullptr;
 
     const int numSamples = buffer.getNumSamples();
 
-    // Update shape from parameter
-    int shapeIndex = shapeParam_->getIndex();
-    oscillator_.set_shape(static_cast<braids::MacroOscillatorShape>(shapeIndex));
-
-    // Update timbre/color parameters (scaled to Braids 0-32767 range)
-    int16_t timbre = static_cast<int16_t>(timbreParam_->get() * 32767.0f);
-    int16_t color = static_cast<int16_t>(colorParam_->get() * 32767.0f);
-    oscillator_.set_parameters(timbre, color);
-
-    // If no note playing and envelope done, clear buffer
-    if (!noteOn_ && envelope_.done())
-    {
-        buffer.clear();
-        return;
-    }
-
-    for (int i = 0; i < numSamples; i += static_cast<int>(kInternalBlockSize))
-    {
-        size_t blockSize = std::min(static_cast<size_t>(numSamples - i), kInternalBlockSize);
-
-        oscillator_.Render(syncBuffer_, internalBuffer_, blockSize);
-
-        // Convert int16 to float, apply envelope and velocity
-        for (size_t j = 0; j < blockSize; ++j)
-        {
-            // Get envelope value (0-65535) and scale to 0.0-1.0
-            uint16_t envValue = envelope_.Render();
-            float envGain = static_cast<float>(envValue) / 65535.0f;
-
-            float sample = static_cast<float>(internalBuffer_[j]) / 32768.0f;
-            sample *= envGain * currentVelocity_;
-
-            leftChannel[i + static_cast<int>(j)] = sample;
-            if (rightChannel)
-                rightChannel[i + static_cast<int>(j)] = sample;
-        }
+    // Process all voices
+    if (rightChannel) {
+        voiceAllocator_.Process(leftChannel, rightChannel, static_cast<size_t>(numSamples));
+    } else {
+        // Mono output
+        float tempRight[2048];
+        size_t samples = std::min(static_cast<size_t>(numSamples), sizeof(tempRight) / sizeof(float));
+        voiceAllocator_.Process(leftChannel, tempRight, samples);
     }
 }
 
@@ -161,13 +145,13 @@ juce::AudioProcessorEditor* BraidsVSTProcessor::createEditor()
 
 void BraidsVSTProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // Save parameters
     auto state = juce::ValueTree("BraidsVSTState");
     state.setProperty("shape", shapeParam_->getIndex(), nullptr);
     state.setProperty("timbre", timbreParam_->get(), nullptr);
     state.setProperty("color", colorParam_->get(), nullptr);
     state.setProperty("attack", attackParam_->get(), nullptr);
     state.setProperty("decay", decayParam_->get(), nullptr);
+    state.setProperty("polyphony", polyphonyParam_->get(), nullptr);
 
     juce::MemoryOutputStream stream(destData, false);
     state.writeToStream(stream);
@@ -175,7 +159,6 @@ void BraidsVSTProcessor::getStateInformation(juce::MemoryBlock& destData)
 
 void BraidsVSTProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    // Load parameters
     auto state = juce::ValueTree::readFromData(data, static_cast<size_t>(sizeInBytes));
     if (state.isValid())
     {
@@ -189,6 +172,8 @@ void BraidsVSTProcessor::setStateInformation(const void* data, int sizeInBytes)
             *attackParam_ = static_cast<float>(state.getProperty("attack"));
         if (state.hasProperty("decay"))
             *decayParam_ = static_cast<float>(state.getProperty("decay"));
+        if (state.hasProperty("polyphony"))
+            *polyphonyParam_ = static_cast<int>(state.getProperty("polyphony"));
     }
 }
 

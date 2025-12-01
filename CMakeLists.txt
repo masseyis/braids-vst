@@ -35,7 +35,10 @@ target_sources(BraidsVST
         src/dsp/braids/fm_oscillator.cpp
         src/dsp/braids/analog_oscillator.cpp
         src/dsp/braids/macro_oscillator.cpp
-        src/dsp/braids/envelope.cpp)
+        src/dsp/braids/envelope.cpp
+        src/dsp/resampler.cpp
+        src/dsp/voice.cpp
+        src/dsp/voice_allocator.cpp)
 
 target_include_directories(BraidsVST
     PRIVATE
@@ -75,11 +78,17 @@ add_executable(BraidsVSTTests
     test/dsp/AnalogOscillatorTests.cpp
     test/dsp/MacroOscillatorTests.cpp
     test/dsp/EnvelopeTests.cpp
+    test/dsp/ResamplerTests.cpp
+    test/dsp/VoiceTests.cpp
+    test/dsp/VoiceAllocatorTests.cpp
     src/dsp/braids/resources.cpp
     src/dsp/braids/fm_oscillator.cpp
     src/dsp/braids/analog_oscillator.cpp
     src/dsp/braids/macro_oscillator.cpp
-    src/dsp/braids/envelope.cpp)
+    src/dsp/braids/envelope.cpp
+    src/dsp/resampler.cpp
+    src/dsp/voice.cpp
+    src/dsp/voice_allocator.cpp)
 
 target_link_libraries(BraidsVSTTests
     PRIVATE
