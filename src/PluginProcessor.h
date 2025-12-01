@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "dsp/voice_allocator.h"
+#include "PresetManager.h"
 
 class BraidsVSTProcessor : public juce::AudioProcessor
 {
@@ -39,6 +40,9 @@ public:
     juce::AudioParameterFloat* getDecayParam() { return decayParam_; }
     juce::AudioParameterInt* getPolyphonyParam() { return polyphonyParam_; }
 
+    // Preset manager
+    PresetManager& getPresetManager() { return presetManager_; }
+
 private:
     void handleMidiMessage(const juce::MidiMessage& msg);
 
@@ -52,6 +56,9 @@ private:
     juce::AudioParameterFloat* attackParam_ = nullptr;
     juce::AudioParameterFloat* decayParam_ = nullptr;
     juce::AudioParameterInt* polyphonyParam_ = nullptr;
+
+    // Preset manager
+    PresetManager presetManager_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BraidsVSTProcessor)
 };

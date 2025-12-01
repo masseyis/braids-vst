@@ -23,6 +23,7 @@ namespace {
 BraidsVSTProcessor::BraidsVSTProcessor()
     : AudioProcessor(BusesProperties()
                          .withOutput("Output", juce::AudioChannelSet::stereo(), true))
+    , presetManager_(*this)
 {
     // Create parameters
     addParameter(shapeParam_ = new juce::AudioParameterChoice(
@@ -46,18 +47,20 @@ BraidsVSTProcessor::BraidsVSTProcessor()
         0.5f
     ));
 
+    // Attack: 0-500ms mapped to 0-1
     addParameter(attackParam_ = new juce::AudioParameterFloat(
         juce::ParameterID("attack", 1),
         "Attack",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.0f, 0.3f),
-        0.1f
+        juce::NormalisableRange<float>(0.0f, 1.0f),
+        0.1f  // 50ms default
     ));
 
+    // Decay: 10-2000ms mapped to 0-1
     addParameter(decayParam_ = new juce::AudioParameterFloat(
         juce::ParameterID("decay", 1),
         "Decay",
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.0f, 0.3f),
-        0.3f
+        juce::NormalisableRange<float>(0.0f, 1.0f),
+        0.095f  // ~200ms default: (200-10)/1990 = 0.095
     ));
 
     addParameter(polyphonyParam_ = new juce::AudioParameterInt(
@@ -67,6 +70,9 @@ BraidsVSTProcessor::BraidsVSTProcessor()
     ));
 
     voiceAllocator_.Init(44100.0, 8);
+
+    // Initialize preset manager after parameters are created
+    presetManager_.initialize();
 }
 
 BraidsVSTProcessor::~BraidsVSTProcessor() = default;

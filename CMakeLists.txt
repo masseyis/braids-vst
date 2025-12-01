@@ -25,12 +25,15 @@ juce_add_plugin(BraidsVST
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS TRUE
-    COPY_PLUGIN_AFTER_BUILD TRUE)
+    COPY_PLUGIN_AFTER_BUILD TRUE
+    ICON_BIG "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.png"
+    ICON_SMALL "${CMAKE_CURRENT_SOURCE_DIR}/resources/icon.png")
 
 target_sources(BraidsVST
     PRIVATE
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
+        src/PresetManager.cpp
         src/dsp/braids/resources.cpp
         src/dsp/braids/fm_oscillator.cpp
         src/dsp/braids/analog_oscillator.cpp

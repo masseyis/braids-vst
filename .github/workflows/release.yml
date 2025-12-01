@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+            artifact_name: BraidsVST-macOS
+          - os: ubuntu-latest
+            name: Linux
+            artifact_name: BraidsVST-Linux
+          - os: windows-latest
+            name: Windows
+            artifact_name: BraidsVST-Windows
+
+    runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev \
+            libjack-jackd2-dev \
+            ladspa-sdk \
+            libcurl4-openssl-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            libxcomposite-dev \
+            libxcursor-dev \
+            libxext-dev \
+            libxinerama-dev \
+            libxrandr-dev \
+            libxrender-dev \
+            libwebkit2gtk-4.0-dev \
+            libglu1-mesa-dev \
+            mesa-common-dev
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Run Tests
+        run: ctest --test-dir build --build-config Release --output-on-failure
+
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p release
+          cp -R build/BraidsVST_artefacts/Release/VST3/BraidsVST.vst3 release/
+          cp -R build/BraidsVST_artefacts/Release/AU/BraidsVST.component release/
+          cp -R build/BraidsVST_artefacts/Release/Standalone/BraidsVST.app release/
+          cd release && zip -r ../BraidsVST-macOS.zip .
+
+      - name: Package Linux
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release
+          cp -R build/BraidsVST_artefacts/Release/VST3/BraidsVST.vst3 release/
+          cp -R build/BraidsVST_artefacts/Release/Standalone/BraidsVST release/
+          cd release && tar -czvf ../BraidsVST-Linux.tar.gz .
+
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item -Recurse build/BraidsVST_artefacts/Release/VST3/BraidsVST.vst3 release/
+          Copy-Item -Recurse build/BraidsVST_artefacts/Release/Standalone/BraidsVST.exe release/
+          Compress-Archive -Path release/* -DestinationPath BraidsVST-Windows.zip
+
+      - name: Upload macOS artifact
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: BraidsVST-macOS.zip
+
+      - name: Upload Linux artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: BraidsVST-Linux.tar.gz
+
+      - name: Upload Windows artifact
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: BraidsVST-Windows.zip
+
+  create-release:
+    needs: build-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/BraidsVST-macOS/BraidsVST-macOS.zip
+            artifacts/BraidsVST-Linux/BraidsVST-Linux.tar.gz
+            artifacts/BraidsVST-Windows/BraidsVST-Windows.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
