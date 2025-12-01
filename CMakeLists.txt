@@ -41,7 +41,11 @@ target_sources(BraidsVST
         src/dsp/braids/envelope.cpp
         src/dsp/resampler.cpp
         src/dsp/voice.cpp
-        src/dsp/voice_allocator.cpp)
+        src/dsp/voice_allocator.cpp
+        src/dsp/lfo.cpp
+        src/dsp/mod_envelope.cpp
+        src/dsp/modulation_matrix.cpp
+        src/dsp/moog_filter.cpp)
 
 target_include_directories(BraidsVST
     PRIVATE
@@ -84,6 +88,10 @@ add_executable(BraidsVSTTests
     test/dsp/ResamplerTests.cpp
     test/dsp/VoiceTests.cpp
     test/dsp/VoiceAllocatorTests.cpp
+    test/dsp/LfoTests.cpp
+    test/dsp/ModEnvelopeTests.cpp
+    test/dsp/ModulationMatrixTests.cpp
+    test/dsp/MoogFilterTests.cpp
     src/dsp/braids/resources.cpp
     src/dsp/braids/fm_oscillator.cpp
     src/dsp/braids/analog_oscillator.cpp
@@ -91,7 +99,11 @@ add_executable(BraidsVSTTests
     src/dsp/braids/envelope.cpp
     src/dsp/resampler.cpp
     src/dsp/voice.cpp
-    src/dsp/voice_allocator.cpp)
+    src/dsp/voice_allocator.cpp
+    src/dsp/lfo.cpp
+    src/dsp/mod_envelope.cpp
+    src/dsp/modulation_matrix.cpp
+    src/dsp/moog_filter.cpp)
 
 target_link_libraries(BraidsVSTTests
     PRIVATE

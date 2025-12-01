@@ -2,6 +2,7 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "PluginProcessor.h"
+#include "dsp/modulation_matrix.h"
 
 class BraidsVSTEditor : public juce::AudioProcessorEditor,
                         public juce::Timer
@@ -21,9 +22,9 @@ public:
     void timerCallback() override;
 
 private:
-    // Row types: Preset is special, others map to parameters
-    enum class RowType { Preset, Shape, Timbre, Color, Attack, Decay, Voices };
-    static constexpr int kNumRows = 7;
+    // Row types: Preset is special, Mod rows have multiple fields
+    enum class RowType { Preset, Shape, Timbre, Color, Cutoff, Resonance, Attack, Decay, Voices, Lfo1, Lfo2, Env1, Env2 };
+    static constexpr int kNumRows = 13;
 
     struct RowConfig {
         const char* label;
@@ -47,8 +48,19 @@ private:
     void adjustValue(int row, int delta);
     int rowAtY(int y) const;
 
+    // Modulation row helpers
+    bool isModRow(int row) const;
+    int getNumFieldsForRow(int row) const;
+    void paintModRow(juce::Graphics& g, int row, const juce::Rectangle<int>& rowRect, bool selected);
+    void paintModulationOverlay(juce::Graphics& g, int row, const juce::Rectangle<int>& rowRect);
+    int getModFieldValue(int row, int field) const;
+    void setModFieldValue(int row, int field, int value);
+    juce::String formatModFieldValue(int row, int field) const;
+    juce::String getModDestinationName(int destIdx) const;
+
     BraidsVSTProcessor& processor_;
     int selectedRow_ = 0;
+    int selectedField_ = 0;  // For mod rows with multiple fields
     int dragStartValue_ = 0;
     int dragStartX_ = 0;
 
