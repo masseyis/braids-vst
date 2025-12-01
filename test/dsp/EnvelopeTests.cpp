@@ -19,7 +19,7 @@ TEST(Envelope, TriggerStartsAttack)
 {
     braids::Envelope env;
     env.Init();
-    env.Trigger(1000, 2000);  // Short attack, medium decay
+    env.Trigger(10, 20);  // 10ms attack, 20ms decay
     EXPECT_FALSE(env.done());
 }
 
@@ -27,11 +27,11 @@ TEST(Envelope, AttackRises)
 {
     braids::Envelope env;
     env.Init();
-    env.Trigger(8000, 8000);  // Medium attack/decay
+    env.Trigger(50, 50);  // 50ms attack/decay
 
     uint16_t prev = 0;
     bool rising = false;
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 1000; ++i) {
         uint16_t val = env.Render();
         if (val > prev) {
             rising = true;
@@ -46,10 +46,10 @@ TEST(Envelope, EventuallyFinishes)
 {
     braids::Envelope env;
     env.Init();
-    env.Trigger(1000, 1000);  // Very short attack/decay
+    env.Trigger(10, 10);  // 10ms attack + 10ms decay = 20ms total
 
-    // Run for many samples
-    for (int i = 0; i < 100000; ++i) {
+    // At 96kHz, 20ms = 1920 samples. Run for plenty more.
+    for (int i = 0; i < 10000; ++i) {
         env.Render();
         if (env.done()) break;
     }
@@ -60,10 +60,11 @@ TEST(Envelope, ReachesFullAmplitude)
 {
     braids::Envelope env;
     env.Init();
-    env.Trigger(8000, 16000);  // Medium attack, longer decay
+    env.Trigger(50, 100);  // 50ms attack, 100ms decay
 
     uint16_t max_val = 0;
-    for (int i = 0; i < 10000; ++i) {
+    // At 96kHz, 150ms = 14400 samples. Run for plenty more.
+    for (int i = 0; i < 20000; ++i) {
         uint16_t val = env.Render();
         if (val > max_val) max_val = val;
         if (env.done()) break;

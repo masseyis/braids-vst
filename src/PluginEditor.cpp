@@ -191,7 +191,6 @@ void BraidsVSTEditor::paint(juce::Graphics& g)
 
     int y = kTitleHeight;
     for (int i = 0; i < kNumRows; ++i) {
-        const auto& cfg = kRowConfigs[i];
         bool selected = (i == selectedRow_);
 
         // Row background
@@ -206,9 +205,10 @@ void BraidsVSTEditor::paint(juce::Graphics& g)
         g.setColour(selected ? kBarSelectedColor : kBarColor);
         g.fillRect(rowRect.getX(), rowRect.getY(), barWidth, rowRect.getHeight());
 
-        // Label
+        // Label (dynamic for Timbre/Color based on shape)
         g.setColour(selected ? kTextSelectedColor : kTextColor);
-        g.drawText(cfg.label, rowRect.getX() + 4, rowRect.getY(),
+        juce::String label = getDynamicLabel(i);
+        g.drawText(label, rowRect.getX() + 4, rowRect.getY(),
                    kLabelWidth, rowRect.getHeight(), juce::Justification::centredLeft);
 
         // Value
@@ -307,4 +307,24 @@ void BraidsVSTEditor::mouseWheelMove(const juce::MouseEvent& event, const juce::
         int delta = wheel.deltaY > 0 ? cfg.smallStep : -cfg.smallStep;
         adjustValue(row, delta);
     }
+}
+
+juce::String BraidsVSTEditor::getDynamicLabel(int row) const
+{
+    const auto& cfg = kRowConfigs[row];
+
+    // For Timbre and Color, return shape-specific labels
+    if (cfg.type == RowType::Timbre || cfg.type == RowType::Color) {
+        int shapeIndex = processor_.getShapeParam()->getIndex();
+        if (shapeIndex >= 0 && shapeIndex < 10) {
+            if (cfg.type == RowType::Timbre) {
+                return timbreLabels_[shapeIndex];
+            } else {
+                return colorLabels_[shapeIndex];
+            }
+        }
+    }
+
+    // For all other rows, use the static label
+    return cfg.label;
 }

@@ -21,4 +21,12 @@ extern const size_t LUT_OSCILLATOR_INCREMENTS_SIZE;
 extern const int16_t lut_fm_frequency_quantizer[];
 extern const size_t LUT_FM_FREQUENCY_QUANTIZER_SIZE;
 
+// Waveshaping tables (257 entries each)
+extern const int16_t ws_sine_fold[];
+extern const int16_t ws_tri_fold[];
+extern const int16_t ws_violent_overdrive[];
+
+// SVF filter cutoff coefficient table
+extern const int16_t lut_svf_cutoff[];
+
 } // namespace braids

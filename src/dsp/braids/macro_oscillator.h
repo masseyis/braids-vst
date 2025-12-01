@@ -44,12 +44,28 @@ public:
     void Render(const uint8_t* sync, int16_t* buffer, size_t size);
 
 private:
+    // Render methods for different shapes
+    void RenderCSaw(const uint8_t* sync, int16_t* buffer, size_t size);
+    void RenderMorph(const uint8_t* sync, int16_t* buffer, size_t size);
+    void RenderSawSquare(const uint8_t* sync, int16_t* buffer, size_t size);
+    void RenderSineTriangle(const uint8_t* sync, int16_t* buffer, size_t size);
+    void RenderBuzz(const uint8_t* sync, int16_t* buffer, size_t size);
+    void RenderSub(const uint8_t* sync, int16_t* buffer, size_t size);
+    void RenderSync(const uint8_t* sync, int16_t* buffer, size_t size);
+
     MacroOscillatorShape shape_ = MACRO_OSC_SHAPE_FM;
     int16_t pitch_ = 0;
     int16_t parameter_[2] = {0, 0};
 
-    AnalogOscillator analog_oscillator_;
+    // Two analog oscillators for mixing/morphing
+    AnalogOscillator analog_oscillator_[2];
     FmOscillator fm_oscillator_;
+
+    // Temp buffer for mixing two oscillators
+    int16_t temp_buffer_[128];
+
+    // Filter state for morph shape
+    int32_t lp_state_ = 0;
 
     DISALLOW_COPY_AND_ASSIGN(MacroOscillator);
 };

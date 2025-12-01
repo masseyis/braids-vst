@@ -16,31 +16,34 @@ void Envelope::Init()
     value_ = 0;
 }
 
-uint32_t Envelope::ComputeIncrement(uint16_t time_param)
+uint32_t Envelope::ComputeIncrement(uint16_t time_ms)
 {
-    // Convert time parameter (0-65535) to phase increment
-    // Higher time_param = faster envelope
-    // We want the phase to complete in a reasonable time
-    // At 96kHz sample rate, we want:
-    // - time_param = 0: very slow (~10 seconds)
-    // - time_param = 65535: very fast (~1ms)
+    // time_ms is the envelope time in milliseconds (passed directly from processor)
+    // Attack: 0-500ms, Decay: 10-2000ms
+    //
+    // Phase accumulator is 32-bit, wraps at 2^32
+    // At 96kHz internal sample rate:
+    //   samples_needed = time_ms * 96
+    //   increment = 2^32 / samples_needed
+    //
+    // Higher time_ms = more samples needed = lower increment = slower envelope
 
-    // Exponential mapping: increment = base * 2^(time_param / scale)
-    // Simplified: use a linear-ish mapping for now
-
-    if (time_param == 0) {
-        return 100;  // Very slow
+    // Minimum 1ms to avoid division by zero and ensure snappy response
+    float time = static_cast<float>(time_ms);
+    if (time < 1.0f) {
+        time = 1.0f;
     }
 
-    // Scale the increment exponentially
-    // The increment determines how fast phase goes from 0 to 2^32
-    // At 96kHz, 2^32 / 96000 = ~44739 samples for full sweep at increment=1
+    // Calculate samples needed at 96kHz
+    float samples = time * 96.0f;
 
-    // Use a simple exponential approximation
-    uint32_t increment = static_cast<uint32_t>(time_param) << 8;
+    // Calculate increment: 2^32 / samples
+    uint32_t increment = static_cast<uint32_t>(4294967296.0f / samples);
 
-    // Add minimum to avoid zero
-    increment += 1000;
+    // Ensure minimum increment to prevent stuck envelopes
+    if (increment < 100) {
+        increment = 100;
+    }
 
     return increment;
 }

@@ -58,5 +58,36 @@ private:
         "SQ+SUB", "SAW+SUB", "SQ SYNC", "SAW SYNC", "FM"
     };
 
+    // Dynamic labels for Timbre/Color based on current shape
+    // Format: {timbreLabel, colorLabel} for each shape
+    const char* timbreLabels_[10] = {
+        "SHAPE",    // SAW - waveshaping amount
+        "MORPH",    // MORPH - triangle->saw->square->PWM
+        "SAW VAR",  // SAW/SQ - variable saw shape
+        "FOLD",     // SIN/TRI - fold amount (harmonics)
+        "DENSITY",  // BUZZ - harmonic density
+        "PWM",      // SQ+SUB - pulse width
+        "SAW VAR",  // SAW+SUB - variable saw shape
+        "RATIO",    // SQ SYNC - slave pitch ratio
+        "RATIO",    // SAW SYNC - slave pitch ratio
+        "MOD IDX",  // FM - modulation index
+    };
+
+    const char* colorLabels_[10] = {
+        "BRIGHT",   // SAW - brightness/DC offset
+        "DRIVE",    // MORPH - lowpass filter + overdrive
+        "SAW/SQ",   // SAW/SQ - crossfade saw to square
+        "SIN/TRI",  // SIN/TRI - crossfade sine to triangle fold
+        "DETUNE",   // BUZZ - detune between oscillators
+        "SUB MIX",  // SQ+SUB - sub oscillator mix
+        "SUB MIX",  // SAW+SUB - sub oscillator mix
+        "SHAPE",    // SQ SYNC - waveshaping amount
+        "SHAPE",    // SAW SYNC - waveshaping amount
+        "FEEDBK",   // FM - feedback
+    };
+
+    // Get dynamic label for a row
+    juce::String getDynamicLabel(int row) const;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BraidsVSTEditor)
 };

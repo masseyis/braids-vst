@@ -54,6 +54,14 @@ inline int16_t Mix(int16_t a, int16_t b, uint16_t balance)
     return static_cast<int16_t>(a + (((static_cast<int32_t>(b) - a) * balance) >> 16));
 }
 
+// Clip a 32-bit value to 16-bit signed range
+inline int32_t Clip16(int32_t x)
+{
+    if (x > 32767) return 32767;
+    if (x < -32768) return -32768;
+    return x;
+}
+
 // Crossfade between two wavetable entries
 inline int16_t Crossfade(const uint8_t* table_a, const uint8_t* table_b,
                           uint32_t phase, uint16_t balance)

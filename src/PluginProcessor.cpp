@@ -91,8 +91,14 @@ void BraidsVSTProcessor::handleMidiMessage(const juce::MidiMessage& msg)
 {
     if (msg.isNoteOn())
     {
-        uint16_t attack = static_cast<uint16_t>(attackParam_->get() * 65535.0f);
-        uint16_t decay = static_cast<uint16_t>(decayParam_->get() * 65535.0f);
+        // Convert normalized parameters to actual milliseconds, then to uint16_t
+        // Attack: 0.0-1.0 → 0-500ms → 0-500 stored in uint16_t
+        // Decay: 0.0-1.0 → 10-2000ms → 10-2000 stored in uint16_t
+        // The envelope's ComputeIncrement interprets these as milliseconds directly
+        float attackMs = attackParam_->get() * 500.0f;
+        float decayMs = 10.0f + decayParam_->get() * 1990.0f;
+        uint16_t attack = static_cast<uint16_t>(attackMs);
+        uint16_t decay = static_cast<uint16_t>(decayMs);
         voiceAllocator_.NoteOn(msg.getNoteNumber(), msg.getFloatVelocity(), attack, decay);
     }
     else if (msg.isNoteOff())
