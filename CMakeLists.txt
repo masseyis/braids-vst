@@ -31,7 +31,8 @@ target_sources(BraidsVST
     PRIVATE
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
-        src/dsp/braids/resources.cpp)
+        src/dsp/braids/resources.cpp
+        src/dsp/braids/fm_oscillator.cpp)
 
 target_include_directories(BraidsVST
     PRIVATE
@@ -67,7 +68,9 @@ enable_testing()
 
 add_executable(BraidsVSTTests
     test/dsp/StmlibTests.cpp
-    src/dsp/braids/resources.cpp)
+    test/dsp/FmOscillatorTests.cpp
+    src/dsp/braids/resources.cpp
+    src/dsp/braids/fm_oscillator.cpp)
 
 target_link_libraries(BraidsVSTTests
     PRIVATE
