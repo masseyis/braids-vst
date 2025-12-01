@@ -30,7 +30,8 @@ juce_add_plugin(BraidsVST
 target_sources(BraidsVST
     PRIVATE
         src/PluginProcessor.cpp
-        src/PluginEditor.cpp)
+        src/PluginEditor.cpp
+        src/dsp/braids/resources.cpp)
 
 target_include_directories(BraidsVST
     PRIVATE
@@ -65,7 +66,8 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(BraidsVSTTests
-    test/dsp/StmlibTests.cpp)
+    test/dsp/StmlibTests.cpp
+    src/dsp/braids/resources.cpp)
 
 target_link_libraries(BraidsVSTTests
     PRIVATE

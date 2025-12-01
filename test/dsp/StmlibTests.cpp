@@ -2,6 +2,7 @@
 #include "dsp/stmlib/stmlib.h"
 #include "dsp/stmlib/dsp.h"
 #include "dsp/stmlib/random.h"
+#include "dsp/braids/resources.h"
 
 TEST(Stmlib, ClipPositive)
 {
@@ -50,4 +51,18 @@ TEST(Stmlib, RandomProducesValues)
     // Just verify it returns something in range
     EXPECT_GE(sample, -32768);
     EXPECT_LE(sample, 32767);
+}
+
+TEST(Resources, SineWaveTableExists)
+{
+    // Verify sine table has expected properties
+    EXPECT_EQ(braids::wav_sine[0], 0);          // Sine starts at 0
+    EXPECT_GT(braids::wav_sine[64], 30000);     // Peak around 32767
+    EXPECT_NEAR(braids::wav_sine[128], 0, 100); // Zero crossing
+}
+
+TEST(Resources, OscillatorIncrementsExist)
+{
+    // Verify LUT exists and has reasonable values
+    EXPECT_GT(braids::lut_oscillator_increments[0], 0u);
 }
