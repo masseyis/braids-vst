@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "dsp/braids/fm_oscillator.h"
 
 class BraidsVSTProcessor : public juce::AudioProcessor
 {
@@ -31,7 +32,19 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
 private:
+    void handleMidiMessage(const juce::MidiMessage& msg);
+
+    braids::FmOscillator oscillator_;
     double hostSampleRate_ = 44100.0;
+
+    // Simple voice state
+    bool noteOn_ = false;
+    int currentNote_ = 60;
+    float currentVelocity_ = 0.0f;
+
+    // Internal 96kHz buffer for fixed-point rendering
+    static constexpr size_t kInternalBlockSize = 24;
+    int16_t internalBuffer_[kInternalBlockSize];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BraidsVSTProcessor)
 };
