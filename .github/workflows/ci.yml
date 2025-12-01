@@ -3,24 +3,29 @@ name: CI
 on:
   push:
     branches: [main, develop]
+    tags: ['v*']
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build-and-test:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
         include:
           - os: macos-latest
-            cmake_generator: "Unix Makefiles"
+            name: macOS
+            artifact_name: BraidsVST-macOS
           - os: ubuntu-latest
-            cmake_generator: "Unix Makefiles"
+            name: Linux
+            artifact_name: BraidsVST-Linux
           - os: windows-latest
-            cmake_generator: "Visual Studio 17 2022"
+            name: Windows
+            artifact_name: BraidsVST-Windows
 
     runs-on: ${{ matrix.os }}
+    name: Build ${{ matrix.name }}
 
     steps:
       - name: Checkout
@@ -48,10 +53,71 @@ jobs:
             mesa-common-dev
 
       - name: Configure CMake
-        run: cmake -B build -G "${{ matrix.cmake_generator }}" -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
       - name: Run Tests
         run: ctest --test-dir build --build-config Release --output-on-failure
+
+      - name: Package macOS
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p release
+          cp -R build/BraidsVST_artefacts/Release/VST3/BraidsVST.vst3 release/
+          cp -R build/BraidsVST_artefacts/Release/AU/BraidsVST.component release/
+          cp -R build/BraidsVST_artefacts/Release/Standalone/BraidsVST.app release/
+          cd release && zip -r ../BraidsVST-macOS.zip .
+
+      - name: Package Linux
+        if: runner.os == 'Linux' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          mkdir -p release
+          cp -R build/BraidsVST_artefacts/Release/VST3/BraidsVST.vst3 release/
+          cp -R build/BraidsVST_artefacts/Release/Standalone/BraidsVST release/
+          cd release && tar -czvf ../BraidsVST-Linux.tar.gz .
+
+      - name: Package Windows
+        if: runner.os == 'Windows' && startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item -Recurse build/BraidsVST_artefacts/Release/VST3/BraidsVST.vst3 release/
+          Copy-Item -Recurse build/BraidsVST_artefacts/Release/Standalone/BraidsVST.exe release/
+          Compress-Archive -Path release/* -DestinationPath BraidsVST-Windows.zip
+
+      - name: Upload artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            BraidsVST-macOS.zip
+            BraidsVST-Linux.tar.gz
+            BraidsVST-Windows.zip
+          if-no-files-found: ignore
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/BraidsVST-macOS/BraidsVST-macOS.zip
+            artifacts/BraidsVST-Linux/BraidsVST-Linux.tar.gz
+            artifacts/BraidsVST-Windows/BraidsVST-Windows.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
